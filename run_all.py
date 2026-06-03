@@ -2,7 +2,13 @@ import os
 import subprocess
 import sys
 
-def run_script(script_path):
+def run_script(script_path: str) -> None:
+    """
+    Executes a python script and handles errors.
+
+    Args:
+        script_path: Path to the script to execute.
+    """
     print(f"\n==================================================")
     print(f"Executing: {script_path}")
     print(f"==================================================")
@@ -13,15 +19,18 @@ def run_script(script_path):
         sys.exit(res.returncode)
     print(f"Finished: {script_path} successfully.\n")
 
-def main():
+def main() -> None:
+    """
+    Orchestrates the entire Fuel Consumption & CO2 Emissions Prediction Pipeline.
+    """
     print("==================================================")
     print("  Fuel Consumption & CO2 Emissions Prediction Pipeline  ")
     print("==================================================")
     
     # Define script paths
-    cleaning_script = os.path.join('fuel-consumption-co2-project', 'scripts', '01_data_cleaning.py')
-    eda_script = os.path.join('fuel-consumption-co2-project', 'scripts', '02_eda_visualization.py')
-    model_script = os.path.join('fuel-consumption-co2-project', 'scripts', '03_mlp_ggo_model.py')
+    cleaning_script = os.path.join('scripts', '01_data_cleaning.py')
+    eda_script = os.path.join('scripts', '02_eda_visualization.py')
+    model_script = os.path.join('scripts', '03_mlp_ggo_model.py')
     
     # 1. Run Data Cleaning
     run_script(cleaning_script)
@@ -36,11 +45,11 @@ def main():
     print("       ALL PIPELINE STEPS COMPLETED SUCCESSFULLY  ")
     print("==================================================")
     print("Results summary:")
-    print("- Cleaned dataset created: fuel-consumption-co2-project/data/processed/Fuel_Consumption_Cleaned.csv")
-    print("- Visual figures saved in: fuel-consumption-co2-project/results/figures/")
+    print("- Cleaned dataset created: data/processed/Fuel_Consumption_Cleaned.csv")
+    print("- Visual figures saved in: results/figures/")
     print("- Reports written: ")
-    print("  * fuel-consumption-co2-project/results/reports/eda_report.md")
-    print("  * fuel-consumption-co2-project/results/reports/model_performance_report.md")
+    print("  * results/reports/eda_report.md")
+    print("  * results/reports/model_performance_report.md")
     print("==================================================")
 
 if __name__ == '__main__':

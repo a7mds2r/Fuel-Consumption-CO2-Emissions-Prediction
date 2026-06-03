@@ -1,58 +1,30 @@
 import os
+import sys
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+# Add project root to sys.path to allow importing from src
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from src.utils import set_viz_style, map_fuel_type, map_transmission, ensure_dir
+
 # Set style for premium visualizations
-plt.style.use('seaborn-v0_8-whitegrid')
-sns.set_theme(style="whitegrid", palette="muted")
-plt.rcParams.update({
-    'font.family': 'sans-serif',
-    'font.size': 11,
-    'axes.labelsize': 12,
-    'axes.titlesize': 14,
-    'xtick.labelsize': 10,
-    'ytick.labelsize': 10,
-    'figure.titlesize': 16,
-    'figure.facecolor': '#fafafa',
-    'axes.facecolor': '#ffffff'
-})
+set_viz_style()
 
-def map_fuel_type(fuel):
-    fuel_map = {
-        'X': 'Regular Gasoline',
-        'Z': 'Premium Gasoline',
-        'D': 'Diesel',
-        'E': 'Ethanol (E85)',
-        'N': 'Natural Gas (CNG)'
-    }
-    return fuel_map.get(fuel, f'Other ({fuel})')
-
-def map_transmission(t):
-    t_str = str(t).upper()
-    if t_str.startswith('AS'):
-        return 'Automatic (Select Shift)'
-    elif t_str.startswith('AM'):
-        return 'Automated Manual'
-    elif t_str.startswith('AV') or t_str.startswith('CV'):
-        return 'Continuously Variable (CVT)'
-    elif t_str.startswith('A'):
-        return 'Automatic'
-    elif t_str.startswith('M'):
-        return 'Manual'
-    else:
-        return 'Other'
-
-def run_eda():
+def run_eda() -> None:
+    """
+    Performs Exploratory Data Analysis (EDA) on the cleaned dataset.
+    Generates 11 diagnostic plots and a comprehensive Markdown report.
+    """
     print("--- Starting Task 2: EDA & Visualization ---")
     
-    cleaned_path = 'fuel-consumption-co2-project/data/processed/Fuel_Consumption_Cleaned.csv'
-    figures_dir = 'fuel-consumption-co2-project/results/figures'
-    reports_dir = 'fuel-consumption-co2-project/results/reports'
+    cleaned_path = 'data/processed/Fuel_Consumption_Cleaned.csv'
+    figures_dir = 'results/figures'
+    reports_dir = 'results/reports'
     
-    os.makedirs(figures_dir, exist_ok=True)
-    os.makedirs(reports_dir, exist_ok=True)
+    ensure_dir(figures_dir)
+    ensure_dir(reports_dir)
     
     # 1. Load Cleaned Data
     if not os.path.exists(cleaned_path):
@@ -84,7 +56,7 @@ def run_eda():
     ax.set_facecolor('#ffffff')
     sns.regplot(data=df, x='FUEL_CONSUMPTION', y='EMISSIONS', ax=ax,
                 scatter_kws={'alpha':0.2, 'color':'#00cec9', 's':10},
-                line_kws={'color':'#ff7675', 'linewidth':2})
+                line_kws={'color':'#ff7675', 'linewidth':2.5})
     ax.set_title('Fuel Consumption (City) vs CO2 Emissions', fontsize=14, fontweight='bold', pad=15)
     ax.set_xlabel('Fuel Consumption (L/100 km)', fontsize=12)
     ax.set_ylabel('CO2 Emissions (g/km)', fontsize=12)
@@ -111,7 +83,7 @@ def run_eda():
     fig, ax = plt.subplots(figsize=(10, 6))
     fig.patch.set_facecolor('#fafafa')
     ax.set_facecolor('#ffffff')
-    # Filter to main cylinder numbers for readability (e.g. 3, 4, 5, 6, 8, 10, 12, 16)
+    # Filter to main cylinder numbers for readability
     main_cyl = df['CYLINDERS'].value_counts()
     valid_cyl = main_cyl[main_cyl > 5].index.tolist()
     df_cyl = df[df['CYLINDERS'].isin(valid_cyl)]
@@ -143,7 +115,6 @@ def run_eda():
     fig, ax = plt.subplots(figsize=(10, 6))
     fig.patch.set_facecolor('#fafafa')
     ax.set_facecolor('#ffffff')
-    # Filter to common fuel types to avoid clutter
     fuel_counts = df['FUEL_NAME'].value_counts()
     valid_fuels = fuel_counts[fuel_counts > 10].index.tolist()
     df_fuel = df[df['FUEL_NAME'].isin(valid_fuels)]
@@ -216,7 +187,6 @@ def run_eda():
 
     # --- VISUALIZATION 11: pairplot.png ---
     pair_cols = ['ENGINE_SIZE', 'CYLINDERS', 'FUEL_CONSUMPTION', 'EMISSIONS']
-    # Subsample data to 1000 rows to ensure fast rendering of pairplot
     df_sub = df[pair_cols].sample(n=min(1000, len(df)), random_state=42)
     pairplot = sns.pairplot(df_sub, diag_kind='kde', plot_kws={'alpha': 0.4, 's': 15, 'color': '#0984e3'}, diag_kws={'color': '#0984e3'})
     pairplot.fig.patch.set_facecolor('#fafafa')
@@ -225,7 +195,7 @@ def run_eda():
     plt.close()
     print("11. Generated pairplot.png")
     
-    # 3. Create EDA Report (results/reports/eda_report.md)
+    # 3. Create EDA Report
     print("Creating EDA Report...")
     summary_stats = numeric_df.describe().to_markdown()
     
@@ -234,12 +204,10 @@ def run_eda():
     c_cyl_emi = corr.loc['CYLINDERS', 'EMISSIONS']
     c_fuel_emi = corr.loc['FUEL_CONSUMPTION', 'EMISSIONS']
     
-    # Year difference
     emi_2000 = df[df['YEAR'] == 2000]['EMISSIONS'].mean()
     emi_2022 = df[df['YEAR'] == 2022]['EMISSIONS'].mean()
     pct_reduction = ((emi_2000 - emi_2022) / emi_2000) * 100
     
-    # Fuel impact
     fuel_means = df.groupby('FUEL_NAME')['EMISSIONS'].mean().to_markdown()
     
     report_content = f"""# Exploratory Data Analysis (EDA) Report
@@ -261,38 +229,32 @@ The following table summarizes the key statistics of the numeric features and th
 - The outlier cleaning process successfully filtered extreme and invalid samples, resulting in a cleaner dataset for modeling.
 
 ### 2.2 Feature Correlations with CO2 Emissions
-- **City Fuel Consumption (`FUEL_CONSUMPTION`)**: Has a strong positive correlation of **{c_fuel_emi:.3f}** with `EMISSIONS`. This indicates that vehicle fuel usage is the single most direct predictor of carbon output.
-- **Engine Size (`ENGINE_SIZE`)**: Shows a strong positive correlation of **{c_eng_emi:.3f}** with `EMISSIONS`. Larger engines burn more fuel and therefore emit more carbon dioxide.
-- **Cylinders (`CYLINDERS`)**: Shows a positive correlation of **{c_cyl_emi:.3f}**. Additional cylinders generally indicate higher displacement and higher emissions.
+- **City Fuel Consumption (`FUEL_CONSUMPTION`)**: Has a strong positive correlation of **{c_fuel_emi:.3f}** with `EMISSIONS`.
+- **Engine Size (`ENGINE_SIZE`)**: Shows a strong positive correlation of **{c_eng_emi:.3f}** with `EMISSIONS`.
+- **Cylinders (`CYLINDERS`)**: Shows a positive correlation of **{c_cyl_emi:.3f}**.
 
 ### 2.3 Fuel Type Impact Analysis
 The average carbon footprint varies widely across fuel technologies:
 
 {fuel_means}
 
-- **Regular & Premium Gasoline** remain the benchmark standards, with Premium emissions slightly higher on average, often due to high-performance engines.
-- **Ethanol (E85)** displays lower tail emissions in some categories, but due to its lower energy density, vehicles burn a higher volume of fuel, which partially offsets savings.
-- **Natural Gas (CNG)** and **Diesel** show specialized profiles, with CNG being historically cleaner.
-
 ### 2.4 Transmission Efficiency
-- Manual and Continuously Variable Transmissions (CVTs) generally show lower average emissions compared to older traditional Automatic systems, reflecting their higher energy transfer efficiency.
-- Newer multi-gear automatic systems (such as Select Shift) have closed the efficiency gap significantly.
+- Manual and Continuously Variable Transmissions (CVTs) generally show lower average emissions compared to older traditional Automatic systems.
 
 ### 2.5 Yearly Trends (2000 - 2022)
 - Average emissions dropped from **{emi_2000:.2f} g/km** in 2000 to **{emi_2022:.2f} g/km** in 2022.
-- This represents a **{pct_reduction:.2f}% reduction** in average carbon output over 22 years.
-- This positive trend is driven by regulatory standards, direct fuel injection, turbocharging, hybridization, and transition to smaller engine sizes.
+- This represents a **{pct_reduction:.2f}% reduction** over 22 years.
 
 ---
 
 ## 3. High-Carbon vs Low-Carbon Manufacturers
 
-- **Highest Average Emitters**: Manufacturers specializing in luxury, sports, or heavy vehicles (e.g., Lamborghini, Bugatti, Bentley, Rolls-Royce).
-- **Lowest Average Emitters**: Manufacturers focusing on compact, hybrid, and small passenger cars (e.g., Smart, Toyota, Honda, Mazda).
+- **Highest Average Emitters**: Manufacturers specializing in luxury, sports, or heavy vehicles.
+- **Lowest Average Emitters**: Manufacturers focusing on compact, hybrid, and small passenger cars.
 """
     
     report_path = os.path.join(reports_dir, 'eda_report.md')
-    with open(report_path, 'w', encoding='utf-8') as f:
+    with (open(report_path, 'w', encoding='utf-8')) as f:
         f.write(report_content)
         
     print(f"EDA Report successfully saved to {report_path}")

@@ -1,34 +1,32 @@
 import os
+import sys
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# Set style for premium visualizations
-plt.style.use('seaborn-v0_8-whitegrid')
-sns.set_theme(style="whitegrid", palette="muted")
-plt.rcParams.update({
-    'font.family': 'sans-serif',
-    'font.size': 11,
-    'axes.labelsize': 12,
-    'axes.titlesize': 14,
-    'xtick.labelsize': 10,
-    'ytick.labelsize': 10,
-    'figure.titlesize': 16,
-    'figure.facecolor': '#fafafa',
-    'axes.facecolor': '#ffffff'
-})
+# Add project root to sys.path to allow importing from src
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from src.utils import set_viz_style, ensure_dir
 
-def clean_data():
+# Set style for premium visualizations
+set_viz_style()
+
+def clean_data() -> None:
+    """
+    Performs data cleaning on the raw fuel consumption dataset.
+    Standardizes columns, removes missing values, duplicates, and outliers.
+    Saves the cleaned dataset and diagnostic plots.
+    """
     print("--- Starting Task 1: Data Cleaning ---")
     
     # Paths
-    raw_path = 'fuel-consumption-co2-project/data/raw/Fuel_Consumption_2000-2022.csv'
-    processed_dir = 'fuel-consumption-co2-project/data/processed'
-    figures_dir = 'fuel-consumption-co2-project/results/figures'
+    raw_path = 'data/raw/Fuel_Consumption_2000-2022.csv'
+    processed_dir = 'data/processed'
+    figures_dir = 'results/figures'
     
-    os.makedirs(processed_dir, exist_ok=True)
-    os.makedirs(figures_dir, exist_ok=True)
+    ensure_dir(processed_dir)
+    ensure_dir(figures_dir)
     
     # 1. Load Data
     if not os.path.exists(raw_path):
@@ -108,7 +106,10 @@ def clean_data():
     fig.patch.set_facecolor('#fafafa')
     
     # Raw emissions
-    sns.boxplot(y=df_raw['EMISSIONS'], ax=axes[0], color='#ff7675', width=0.4)
+    if 'EMISSIONS' in df_raw.columns:
+        sns.boxplot(y=df_raw['EMISSIONS'], ax=axes[0], color='#ff7675', width=0.4)
+    else:
+        print("Warning: 'EMISSIONS' column not found in raw data for comparison plot.")
     axes[0].set_title('Raw EMISSIONS Distribution (Before Cleaning)', fontsize=12, fontweight='semibold')
     axes[0].set_ylabel('CO2 Emissions (g/km)', fontsize=11)
     axes[0].set_facecolor('#ffffff')
